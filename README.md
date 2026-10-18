@@ -29,7 +29,7 @@ Windows 桌面工具：把被 iPhone 互传破坏的实况照片（Live Photo）
 前置：.NET 8 SDK、Windows。仓库不含 SDK。
 
 ```bash
-git clone <仓库地址待定> live-repair
+git clone https://github.com/hczxpaul/live-repair.git live-repair
 cd live-repair
 
 dotnet build LivePhoto.sln -c Release
