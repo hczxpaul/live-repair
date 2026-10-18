@@ -65,7 +65,7 @@ public sealed class MainViewModel : ViewModelBase
         OpenOutputCommand = new RelayCommand(OpenOutput, () => !string.IsNullOrEmpty(_outputFolder));
 
         RowsView = System.Windows.Data.CollectionViewSource.GetDefaultView(Rows);
-        RowsView.Filter = o => o is PhotoRow r && r.MatchesFilter(_keyword, _onlyNeedFix);
+        RowsView.Filter = o => o is PhotoRow r && r.MatchesFilter(BuildRowFilter());
     }
 
     // ---------------- 绑定属性 ----------------
@@ -171,10 +171,27 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 含子目录。属于 T0 枚举阶段的条件 —— 改完必须「重新扫描」才生效，
+    /// 光靠 Log 说清楚，免得用户改了发现列表没反应。
+    /// </summary>
     public bool IncludeSubdirectories
     {
         get => _includeSubdirectories;
-        set => Set(ref _includeSubdirectories, value);
+        set
+        {
+            if (!Set(ref _includeSubdirectories, value))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_sourceFolder))
+            {
+                Log("信息", value
+                    ? "已勾选「含子目录」—— 点「重新扫描」后生效"
+                    : "已取消「含子目录」—— 点「重新扫描」后生效");
+            }
+        }
     }
 
     /// <summary>是否只扫 LivePhoto 开头的 JPEG。关掉则扫全部 JPEG，纯靠结构判定。</summary>
@@ -198,11 +215,22 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    /// <summary>文件名前缀，逗号分隔多个。</summary>
+    /// <summary>文件名前缀，逗号分隔多个。同属 T0 条件，改完要「重新扫描」。</summary>
     public string NamePrefixes
     {
         get => _namePrefixes;
-        set => Set(ref _namePrefixes, value);
+        set
+        {
+            if (!Set(ref _namePrefixes, value))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_sourceFolder))
+            {
+                Log("信息", $"前缀已改为「{value}」—— 点「重新扫描」后生效");
+            }
+        }
     }
 
     /// <summary>T0 之后通过文件名/大小/日期筛选的文件数（尚未读任何内容）。</summary>
@@ -237,6 +265,7 @@ public sealed class MainViewModel : ViewModelBase
             if (Set(ref _onlyAppleMakerNote, value))
             {
                 _filterDirty = true;
+                RefreshRowFilter();
                 Raise(nameof(SelectedCandidateCount), nameof(BlockReason), nameof(HintText));
                 AnalyzeSelectedCommand.RaiseCanExecuteChanged();
             }
@@ -251,6 +280,7 @@ public sealed class MainViewModel : ViewModelBase
             if (Set(ref _excludeAlreadyStandard, value))
             {
                 _filterDirty = true;
+                RefreshRowFilter();
                 Raise(nameof(SelectedCandidateCount), nameof(BlockReason), nameof(HintText));
                 AnalyzeSelectedCommand.RaiseCanExecuteChanged();
             }
@@ -401,10 +431,11 @@ public sealed class MainViewModel : ViewModelBase
                 return ProgressText;
             }
 
-            // 筛选用改过但还没重新分析 —— 列表里是旧结果，得说清楚
+            // 「排除已合规 / 仅 Apple」改了就已经在列表上即时生效；这里提示的是
+            // "还没按新条件重新读过文件" —— 旧的分析结果可能仍混在里面（或该读的还没读）。
             if (State is ShellState.Ready or ShellState.Finished && _filterDirty)
             {
-                return "筛选条件已变化 —— 再点一次「分析所选」即可按新条件刷新";
+                return "筛选条件已变化 —— 列表已即时过滤；再点一次「分析所选」才会按新条件重新读取";
             }
 
             return BlockReason.Length > 0 ? BlockReason : ProgressText;
@@ -559,7 +590,18 @@ public sealed class MainViewModel : ViewModelBase
 
         if (targets.Count == 0)
         {
-            Log("警告", "没有符合条件的候选（可调整设备勾选，或点「全部分析」）");
+            // 必须先清空：否则界面上还留着上一次分析的结果，
+            // 用户改完条件再分析、列表纹丝不动 —— 看着就像"筛选没生效/已经修好的还在"。
+            // 2026-10-18 修：原来这里直接 return，Rows 从不刷新。
+            Rows.Clear();
+            Total = 0;
+            Done = 0;
+            ProgressValue = 0;
+            ProgressText = "没有符合条件的候选";
+            Selected = null;
+            RaiseCounts();
+            Log("警告", "没有符合条件的候选 —— 列表已清空（可调整设备勾选，或点「全部分析」）");
+            State = ShellState.Ready;
             return;
         }
 
@@ -960,6 +1002,17 @@ public sealed class MainViewModel : ViewModelBase
     private void RefreshFilter()
     {
         _dispatcher.InvokeAsync(() => RowsView.Refresh());
+    }
+
+    /// <summary>列表显示层的过滤条件：勾了什么就不显示什么，与走哪条分析路径无关。</summary>
+    private RowFilter BuildRowFilter() =>
+        new(_keyword, _onlyNeedFix, _excludeAlreadyStandard, _onlyAppleMakerNote);
+
+    /// <summary>这三个条件变了，已经显示的结果要立刻跟着变（不用等下一次分析）。</summary>
+    private void RefreshRowFilter()
+    {
+        RefreshFilter();
+        RaiseCounts();
     }
 
     private void RaiseCounts()

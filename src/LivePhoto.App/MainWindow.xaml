@@ -115,10 +115,15 @@
                                Text="{Binding StatusText, Mode=OneWay}"/>
                     <Button Grid.Column="2" Content="分析所选" Padding="12,5" Margin="0,0,6,0"
                             AutomationProperties.AutomationId="BtnAnalyzeSelected"
-                            Command="{Binding AnalyzeSelectedCommand}"/>
+                            Command="{Binding AnalyzeSelectedCommand}"
+                            ToolTipService.ShowOnDisabled="True"
+                            ToolTip="按下方勾选/设备条件挑出候选，再逐个全量读取分析（最省远程盘带宽）"/>
                     <Button Grid.Column="3" Content="全部分析" Padding="12,5"
                             AutomationProperties.AutomationId="BtnAnalyzeAll"
-                            Command="{Binding AnalyzeAllCommand}"/>
+                            Command="{Binding AnalyzeAllCommand}"
+                            ToolTipService.ShowOnDisabled="True"
+                            ToolTip="不看设备勾选，直接把探测到的候选全部读一遍（最完整也最费带宽）。
+列表里显示什么仍然听「排除已合规 / 仅疑似被 Apple 改写 / 仅显需修复」的勾选。"/>
                 </Grid>
 
                 <TextBlock Style="{StaticResource FieldLabel}" Text="文件名前缀（逗号分隔多个）" Margin="0,10,0,2"/>
@@ -149,9 +154,13 @@
                     <CheckBox Content="仅显需修复" IsChecked="{Binding OnlyNeedFix}"
                               Margin="0,0,14,4" AutomationProperties.AutomationId="ChkOnlyNeedFix"/>
                     <CheckBox Content="仅疑似被 Apple 改写" IsChecked="{Binding OnlyAppleMakerNote}"
-                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkAppleMN"/>
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkAppleMN"
+                              ToolTip="只看 MakerNote 前 5 字节为 Apple 的文件（被 Apple 互传链路改写过的那种）。
+勾上会挡掉「缺实况声明」「需补容器」这两类 —— 它们是另一种毛病，不是 Apple 改写。"/>
                     <CheckBox Content="排除已合规" IsChecked="{Binding ExcludeAlreadyStandard}"
-                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkExcludeStd"/>
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkExcludeStd"
+                              ToolTip="列表里不显示「已合规」的照片（已有 Google 标准实况声明且视频容器完整）。
+在选分析目标时也跳过它们、省一次全量读；「需补容器」这类带声明但视频缺 ftyp 的文件不会被误跳过。"/>
                     <TextBox Width="150" VerticalAlignment="Center" Margin="0,0,0,4"
                              Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="按文件名过滤"/>

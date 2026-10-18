@@ -37,3 +37,8 @@ publish/standalone/
 # ---- 临时 / 本地工作目录 ----
 .tmp/
 .workbuddy/
+
+# ---- OS 垃圾（Windows 资源管理器浏览即生成）----
+Thumbs.db
+desktop.ini
+.DS_Store

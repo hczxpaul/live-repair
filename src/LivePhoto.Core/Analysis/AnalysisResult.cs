@@ -47,6 +47,12 @@ public sealed class AnalysisResult
     /// <summary>EOI 与 ftyp 之间的厂商私有块长度（vivo 原生通常 269 B，被 Apple 互传后为 0）。</summary>
     public long BlkLength { get; init; }
 
+    /// <summary>
+    /// 识别出的厂商私有声明来源（如"荣耀"）。只有
+    /// <see cref="PhotoCondition.VendorDeclared"/> 才会填它，其余为 null。
+    /// </summary>
+    public string? Vendor { get; init; }
+
     /// <summary>MP4 尾部不属于任何 box 的杂散字节数。</summary>
     public long TailStray { get; init; }
 

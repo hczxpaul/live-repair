@@ -156,6 +156,7 @@ public static class Analyzer
         // ---- 二级判定（顺序对齐已验证的 Python 判据）----
         PhotoCondition cond;
         string reason;
+        string? vendorName = null;
         if (mnIsApple && hasEmbedded)
         {
             cond = PhotoCondition.NeedFix;
@@ -193,14 +194,29 @@ public static class Analyzer
         else
         {
             // 走到这里必然是：有内嵌视频、MakerNote 不是 Apple 改写值、也没有 Google 标准声明。
-            // 这不是"存疑"而是明确的缺陷：相册/播放器缺少识别依据，会把它当成静态图片处理
-            // —— 用户真机实测"没修之前被误认为静态图片、视频播不了"。
-            // 修复动作也很确定：补一段标准实况声明（+1071 B），MakerNote 与视频都不动。
             //
-            // 归为 MissingDeclaration 而不是 NeedFix：它同样是待修复（默认勾选、进入修复流），
-            // 但成因与"被 Apple 改写"是两回事，必须分开标识 —— 用户要能一眼看出毛病在哪。
-            cond = PhotoCondition.MissingDeclaration;
-            reason = "缺少 Google 标准实况声明，相册会当成静态图片（视频播不出）→ 补声明即可，MakerNote 原样保留";
+            // 先分一种特殊情况：厂商私有声明。荣耀/华为不用 Google XMP，而是在视频切片
+            // 之前的私有块里写厂商标识（实测荣耀为 "HiHonor_EhdrEn"/"HiHonor_ExtInfo"）。
+            // 这类文件绿联能正常识别并播放 —— 修它只是给一个已经能用的文件动手术，
+            // 所以判 VendorDeclared（无需处理），既不默认勾选，也不许被改写。
+            string? vendor = VendorMotionPhoto.Detect(data, ftyp);
+            vendorName = vendor;
+            if (vendor is not null)
+            {
+                cond = PhotoCondition.VendorDeclared;
+                reason = $"{vendor}私有动态照片声明（视频前有厂商标识，无 Google XMP）→ 绿联可识别播放，无需处理";
+            }
+            else
+            {
+                // 剩下的才是真缺陷：相册/播放器缺少识别依据，会把它当成静态图片处理
+                // —— 用户真机实测"没修之前被误认为静态图片、视频播不了"。
+                // 修复动作也很确定：补一段标准实况声明（+1071 B），MakerNote 与视频都不动。
+                //
+                // 归为 MissingDeclaration 而不是 NeedFix：它同样是待修复（默认勾选、进入修复流），
+                // 但成因与"被 Apple 改写"是两回事，必须分开标识 —— 用户要能一眼看出毛病在哪。
+                cond = PhotoCondition.MissingDeclaration;
+                reason = "缺少 Google 标准实况声明，相册会当成静态图片（视频播不出）→ 补声明即可，MakerNote 原样保留";
+            }
         }
 
         // 待修复的三种成因都要给出 MakerNote 的处置说明（分类不合并）
@@ -235,6 +251,7 @@ public static class Analyzer
             Condition = cond,
             Pairing = pairing,
             Reason = reason,
+            Vendor = vendorName,
             Make = make,
             Model = model,
             Software = software,

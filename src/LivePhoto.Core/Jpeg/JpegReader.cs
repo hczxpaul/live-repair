@@ -32,7 +32,24 @@ public static class JpegReader
         m == 0xD8 || m == 0x01 || (m >= 0xD0 && m <= 0xD7);
 
     /// <summary>扫描 JPEG 段，遇到 SOS(FFDA) 停止。参考实现的 <c>jpeg_segments</c>。</summary>
-    public static List<JpegSegment> ReadSegments(byte[] d)
+    public static List<JpegSegment> ReadSegments(byte[] d) => ReadSegments(d, strict: true);
+
+    /// <summary>
+    /// 容错版段扫描：某个段声明的长度超出缓冲区时<b>就此停止</b>，返回已经解析出来的部分，
+    /// 不抛异常。
+    /// <para>
+    /// 专供头部探测（T1 只读前 64 KB）使用：荣耀/华为等厂商会写 64 KB 级的 APP6~APP9
+    /// 私有段，严格解析会因"下一段越界"把整个文件判成探测失败 ——
+    /// 而这时 EXIF（通常在最前面）其实是完整的，设备与 MakerNote 都拿得到。
+    /// </para>
+    /// <para>
+    /// 反过来说，<b>全量分析（T2）必须继续用严格版</b>：整文件都读进来了还越界，
+    /// 那就是文件本身结构损坏，不能装作没事。
+    /// </para>
+    /// </summary>
+    public static List<JpegSegment> ReadSegmentsLenient(byte[] d) => ReadSegments(d, strict: false);
+
+    private static List<JpegSegment> ReadSegments(byte[] d, bool strict)
     {
         if (d.Length < 2 || d[0] != 0xFF || d[1] != 0xD8)
         {
@@ -58,18 +75,33 @@ public static class JpegReader
 
             if (i + 4 > d.Length)
             {
+                if (!strict)
+                {
+                    break;
+                }
+
                 throw new JpegFormatException($"段长度字段越界: offset={i}");
             }
 
             int ln = (d[i + 2] << 8) | d[i + 3];
             if (ln < 2)
             {
+                if (!strict)
+                {
+                    break;
+                }
+
                 throw new JpegFormatException($"段长度非法: offset={i} len={ln}");
             }
 
             int end = i + 2 + ln;
             if (end > d.Length)
             {
+                if (!strict)
+                {
+                    break;
+                }
+
                 throw new JpegFormatException($"段越界: offset={i} len={ln}，文件仅 {d.Length} 字节");
             }
 

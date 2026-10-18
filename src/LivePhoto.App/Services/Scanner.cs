@@ -58,8 +58,10 @@ public sealed class ScanFilter
     {
         if (!h.Ok)
         {
-            // 探测失败只说明没拿到信息，不能因此把文件筛掉
-            return !(OnlyAppleMakerNote || ExcludeAlreadyStandard);
+            // 探测失败只说明没拿到信息，绝不能因此把文件筛掉 —— 交给 T2 定夺。
+            // （2026-10-18 修：原先这里会按"勾选了 Apple/排除已合规"把探测失败的文件静默丢掉，
+            //   而这两个框都是默认开的，等于任何头部解析异常的文件都会凭空消失。）
+            return true;
         }
 
         if (Makes is { Count: > 0 } && !Makes.Contains(h.Make ?? "(未知)"))
@@ -77,7 +79,12 @@ public sealed class ScanFilter
             return false;
         }
 
-        if (ExcludeAlreadyStandard && h.HasGoogleXmp)
+        // 「有 Google 声明」不能直接当成"不用修"：视频切片可能缺 ftyp 盒
+        // （ContainerFix —— 播放器认不出容器，视频播不出，这才是要修的）。
+        // 必须三条证据齐了才敢跳过：MakerNote 不是 Apple 值 + 有标准声明 +
+        // 视频确实以 ftyp 开头（由 HeadProbe 花 32 字节探到）。
+        // 任一条不成立就照常进 T2 —— 这一步只是省一次全量读，没有资格决定文件去留。
+        if (ExcludeAlreadyStandard && !h.MakerNoteIsApple && h.HasGoogleXmp && h.VideoStartsWithFtyp == true)
         {
             return false;
         }

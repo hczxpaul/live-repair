@@ -55,6 +55,18 @@ public enum PhotoCondition
 
     /// <summary>iPhone 原生 Live Photo，不是被破坏的文件。</summary>
     AppleNative,
+
+    /// <summary>
+    /// 厂商私有声明：视频切片之前有厂商标识（荣耀为 <c>HiHonor_</c> 尾巴），
+    /// 但<b>没有</b> Google 标准 XMP。
+    /// <para>
+    /// 这类文件在绿联上能被正常识别并播放（2026-10-19 用户实测），所以它<b>不是缺陷</b>：
+    /// 既不该默认勾选，也不该被改写。加 Google XMP 反而是给一个已经能用的文件动手术。
+    /// 单独分类而不是并进「已合规」，是因为判定依据不同（厂商私有 vs Google 标准），
+    /// 将来要是真需要转标准格式，也能一把捞出来。
+    /// </para>
+    /// </summary>
+    VendorDeclared,
 }
 
 /// <summary>
