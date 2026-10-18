@@ -1,0 +1,17 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <CornerRadius x:Key="RadiusCard">8</CornerRadius>
+    <CornerRadius x:Key="RadiusPill">6</CornerRadius>
+    <Thickness x:Key="PadCard">16</Thickness>
+
+    <SolidColorBrush x:Key="BrushSurface">#FFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushSubtle">#F5F5F4</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushStroke">#E3E2DE</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushText">#1F1E1D</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushTextMuted">#6B6A66</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushAccent">#0A66C2</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushRowSelected">#E8F1FC</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushOk">#18794E</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushFail">#B42318</SolidColorBrush>
+    <SolidColorBrush x:Key="BrushWarn">#8A5A00</SolidColorBrush>
+</ResourceDictionary>

@@ -1,0 +1,347 @@
+<Window x:Class="LivePhoto.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:LivePhoto.Core;assembly=LivePhoto.Core"
+        Title="LivePhoto 修复器"
+        Width="1240" Height="800"
+        MinWidth="980" MinHeight="640"
+        AllowDrop="True"
+        Background="{DynamicResource BrushSubtle}"
+        Foreground="{DynamicResource BrushText}">
+
+    <Window.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushStroke}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusCard}"/>
+            <Setter Property="Padding" Value="12"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextMuted}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+        <Style x:Key="FieldValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1 命令栏 -->
+        <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="打开文件夹" Padding="14,6" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="BtnOpen"
+                        Command="{Binding OpenFolderCommand}"/>
+                <Button Grid.Column="1" Content="重新扫描" Padding="14,6" Margin="0,0,12,0"
+                        AutomationProperties.AutomationId="BtnRescan"
+                        Command="{Binding RescanCommand}"/>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock FontSize="12" Foreground="{DynamicResource BrushTextMuted}">
+                        <Run Text="源："/>
+                        <Run Text="{Binding SourceFolder, Mode=OneWay}" Foreground="{DynamicResource BrushText}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource BrushTextMuted}" Margin="0,2,0,0">
+                        <Run Text="输出："/>
+                        <Run Text="{Binding OutputFolder, Mode=OneWay}" Foreground="{DynamicResource BrushText}"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <Button Grid.Column="3" Content="输出目录…" Padding="14,6" Margin="0,0,8,0"
+                        Command="{Binding PickOutputCommand}"/>
+                <ComboBox Grid.Column="4" Width="104" Margin="0,0,8,0" VerticalAlignment="Center"
+                          SelectedValue="{Binding Mode}" SelectedValuePath="Tag">
+                    <ComboBoxItem Tag="{x:Static core:RepairMode.Retain}" Content="保留模式" IsSelected="True"/>
+                    <ComboBoxItem Tag="{x:Static core:RepairMode.Clean}" Content="清理模式"/>
+                </ComboBox>
+                <ComboBox Grid.Column="5" Width="130" Margin="0,0,8,0" VerticalAlignment="Center"
+                          SelectedValue="{Binding MakerNotePolicy}" SelectedValuePath="Tag">
+                    <ComboBoxItem Tag="{x:Static core:MakerNotePolicy.Auto}" Content="MakerNote 自动" IsSelected="True"/>
+                    <ComboBoxItem Tag="{x:Static core:MakerNotePolicy.AlwaysDelete}" Content="总是删除"/>
+                </ComboBox>
+                <!-- 按钮灰掉时必须能看出原因：ToolTip 要配合 ShowOnDisabled 才会在禁用时显示 -->
+                <Button Grid.Column="6" Content="开始修复" Padding="16,6" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="BtnStart"
+                        Background="{DynamicResource BrushAccent}" Foreground="White"
+                        BorderThickness="0" Command="{Binding StartCommand}"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="{Binding BlockReason, Mode=OneWay}"/>
+                <Button Grid.Column="7" Content="停止" Padding="14,6"
+                        AutomationProperties.AutomationId="BtnStop"
+                        Command="{Binding CancelCommand}"/>
+            </Grid>
+        </Border>
+
+        <!-- 2 筛选面板（T0/T1 之后用，不额外读盘） -->
+        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="筛选" FontSize="13" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Grid.Column="1" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{DynamicResource BrushTextMuted}"
+                               Text="{Binding StatusText, Mode=OneWay}"/>
+                    <Button Grid.Column="2" Content="分析所选" Padding="12,5" Margin="0,0,6,0"
+                            AutomationProperties.AutomationId="BtnAnalyzeSelected"
+                            Command="{Binding AnalyzeSelectedCommand}"/>
+                    <Button Grid.Column="3" Content="全部分析" Padding="12,5"
+                            AutomationProperties.AutomationId="BtnAnalyzeAll"
+                            Command="{Binding AnalyzeAllCommand}"/>
+                </Grid>
+
+                <TextBlock Style="{StaticResource FieldLabel}" Text="文件名前缀（逗号分隔多个）" Margin="0,10,0,2"/>
+                <TextBox Text="{Binding NamePrefixes, UpdateSourceTrigger=LostFocus}"
+                         AutomationProperties.AutomationId="TxtPrefixes"
+                         ToolTip="改完按 Enter 或点「重新扫描」生效"/>
+
+                <TextBlock Style="{StaticResource FieldLabel}" Text="设备（按 T1 探测结果，勾选后才做全量分析）" Margin="0,10,0,2"/>
+                <ItemsControl ItemsSource="{Binding Devices}" Margin="0,0,0,4">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Margin="0,0,14,4" AutomationProperties.AutomationId="{Binding Name}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel Margin="0,8,0,0">
+                    <CheckBox Content="含子目录" IsChecked="{Binding IncludeSubdirectories}"
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkSubdir"/>
+                    <CheckBox Content="启用前缀过滤" IsChecked="{Binding RequireNamePrefix}"
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkPrefix"
+                              ToolTip="勾选：只保留文件名以「上方前缀框」中任一前缀开头的文件；取消：不限文件名"/>
+                    <CheckBox Content="仅显需修复" IsChecked="{Binding OnlyNeedFix}"
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkOnlyNeedFix"/>
+                    <CheckBox Content="仅疑似被 Apple 改写" IsChecked="{Binding OnlyAppleMakerNote}"
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkAppleMN"/>
+                    <CheckBox Content="排除已合规" IsChecked="{Binding ExcludeAlreadyStandard}"
+                              Margin="0,0,14,4" AutomationProperties.AutomationId="ChkExcludeStd"/>
+                    <TextBox Width="150" VerticalAlignment="Center" Margin="0,0,0,4"
+                             Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="按文件名过滤"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 3 统计条（筛选控件已上移到 Row 1 的筛选面板） -->
+        <Border Grid.Row="2" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+            <TextBlock FontSize="12" VerticalAlignment="Center">
+                <Run Text="共 "/><Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text=" · 需修复 "/><Run Text="{Binding NeedFixCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource BrushOk}"/>
+                <Run Text=" · 已选 "/><Run Text="{Binding SelectedCount, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text=" · 成功 "/><Run Text="{Binding SuccessCount, Mode=OneWay}"/>
+                <Run Text=" · 失败 "/><Run Text="{Binding FailCount, Mode=OneWay}" Foreground="{DynamicResource BrushFail}"/>
+            </TextBlock>
+        </Border>
+
+        <!-- 3 主体：左列表 / 右预览 -->
+        <Grid Grid.Row="3" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.3*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Padding="0">
+                <!--
+                  注意：这里 *不能* 把 DataGridRow.IsSelected 绑定到 PhotoRow.IsSelected。
+                  DataGrid 的行选中机制会反过来写这个值，和勾选框互相打架，
+                  表现为"点了勾选框没反应 / 勾上又立刻弹回"。
+                  行选中（SelectedItem）只用于右侧预览，勾选状态只由勾选框持有，两者解耦。
+                -->
+                <DataGrid ItemsSource="{Binding RowsView}"
+                          SelectedItem="{Binding Selected}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          BorderThickness="0"
+                          Background="Transparent">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource BrushRowSelected}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="40" CanUserResize="False" CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="文件名" Binding="{Binding FileName}" Width="240" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="80" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="视频" Binding="{Binding VideoText}" Width="80" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="配对" Binding="{Binding PairingText}" Width="86" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="条件" Binding="{Binding ConditionText}" Width="86" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="设备" Binding="{Binding DeviceText}" Width="110" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="MakerNote" Binding="{Binding MakerNoteText}" Width="88" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="78" IsReadOnly="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardBorder}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Border Background="{DynamicResource BrushSubtle}" CornerRadius="6"
+                                Height="240" Margin="0,0,0,12">
+                            <Image Source="{Binding Selected.Thumbnail}" Stretch="Uniform"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <TextBlock Text="{Binding Selected.FileName}" FontWeight="SemiBold"
+                                   FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="路径"/>
+                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Selected.DirectoryName}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="判定"/>
+                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Selected.ReasonText}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="MakerNote 处置"/>
+                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Selected.MakerNoteActionText}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="配对"/>
+                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Selected.PairingText}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="设备"/>
+                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Selected.DeviceText}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="大小 / 视频"/>
+                        <TextBlock Style="{StaticResource FieldValue}">
+                            <Run Text="{Binding Selected.SizeText, Mode=OneWay}"/>
+                            <Run Text=" / "/>
+                            <Run Text="{Binding Selected.VideoText, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="增量 / 状态"/>
+                        <TextBlock Style="{StaticResource FieldValue}">
+                            <Run Text="{Binding Selected.DeltaText, Mode=OneWay}"/>
+                            <Run Text=" / "/>
+                            <Run Text="{Binding Selected.Status, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- 4 选择条 + 进度 -->
+        <Border Grid.Row="4" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="全选" Padding="12,5" Margin="0,0,6,0"
+                            AutomationProperties.AutomationId="BtnSelectAll"
+                            Command="{Binding SelectAllCommand}"/>
+                    <Button Content="全不选" Padding="12,5" Margin="0,0,6,0"
+                            AutomationProperties.AutomationId="BtnSelectNone"
+                            Command="{Binding SelectNoneCommand}"/>
+                    <Button Content="仅选需修复" Padding="12,5"
+                            AutomationProperties.AutomationId="BtnSelectNeedFix"
+                            Command="{Binding SelectNeedFixCommand}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <ProgressBar Height="8" Minimum="0" Maximum="100" Value="{Binding ProgressValue, Mode=OneWay}"
+                                 Foreground="{DynamicResource BrushAccent}"/>
+                    <TextBlock AutomationProperties.AutomationId="TxtHint"
+                               Text="{Binding HintText, Mode=OneWay}" FontSize="12" Margin="0,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource BrushWarn}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BlockReason}" Value="">
+                                        <Setter Property="Foreground" Value="{DynamicResource BrushTextMuted}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 5 日志 -->
+        <Border Grid.Row="5" Style="{StaticResource CardBorder}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="150"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock Text="结果日志" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="导出报告" Padding="12,4" Margin="0,0,6,0" Command="{Binding ExportReportCommand}"/>
+                        <Button Content="打开输出目录" Padding="12,4" Command="{Binding OpenOutputCommand}"/>
+                    </StackPanel>
+                </Grid>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="0"
+                         Background="Transparent"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         ScrollViewer.CanContentScroll="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="{Binding TimeText}" FontSize="12"
+                                           Foreground="{DynamicResource BrushTextMuted}" Width="62"/>
+                                <TextBlock Text="{Binding Level}" FontSize="12" Width="52"
+                                           Foreground="{DynamicResource BrushTextMuted}"/>
+                                <TextBlock Text="{Binding Text}" FontSize="12"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
