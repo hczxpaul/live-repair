@@ -22,7 +22,7 @@ Windows 桌面工具：把被 iPhone 互传破坏的实况照片（Live Photo）
 
 取仓库内 `publish/portable/LivePhoto.App.exe`（约 300 KB），
 需目标机已装 [.NET 8 桌面运行时](https://dotnet.microsoft.com/download/dotnet/8.0)。
-发布页地址待定。
+也可从 [Releases](https://github.com/hczxpaul/live-repair/releases) 下载。
 
 ### 从源码构建
 
